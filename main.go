@@ -265,7 +265,6 @@ func main() {
 				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+"true"+"}"))
 			} else {
 				value,ok:=get(db, key)
-				fmt.Println("db", value, ok)
 				str_Ok:=""
 				if ok {
 					str_Ok="true"
