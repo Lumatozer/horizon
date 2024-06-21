@@ -16,7 +16,7 @@ var last_Balancer int
 
 type Config struct {
 	Balancers                    []string
-	Balance_Server               bool
+	Multi_Balancer               bool
 	Program_Url                  string
 	Max_Local_Program_Instances  int
 	Port                         int
@@ -67,7 +67,7 @@ func main() {
 	}
 	fmt.Println(config)
 	server_Mux:=http.NewServeMux()
-	if config.Balance_Server {
+	if config.Multi_Balancer  {
 		server_Mux.HandleFunc("/", Balance_Server)
 	}
 	http.ListenAndServe(":"+strconv.FormatInt(int64(config.Port), 10), server_Mux)
