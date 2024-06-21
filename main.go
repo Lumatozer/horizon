@@ -235,16 +235,17 @@ func main() {
 		server_Mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
 			key:=r.URL.Query().Get("key")
 			if key=="" {
+				w.Write([]byte("error"))
 				return
 			}
 			val:=r.URL.Query().Get("val")
 			if val=="" {
+				w.Write([]byte("error"))
 				return
 			}
 			db_Mutex.Lock()
 			set(db, key, val)
 			cache[key]=val
-			fmt.Println(cache)
 			if len(cache)>100 {
 				for key:=range cache {
 					delete(cache, key)
@@ -252,15 +253,14 @@ func main() {
 				}
 			}
 			db_Mutex.Unlock()
+			w.Write([]byte("true"))
 		})
 		server_Mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("hi")
 			key:=r.URL.Query().Get("key")
 			if key=="" {
 				return
 			}
 			value,ok:=cache[key]
-			fmt.Println(ok)
 			if ok {
 				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+"true"+"}"))
 			} else {
