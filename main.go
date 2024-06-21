@@ -184,6 +184,7 @@ func Request_Monitor() {
 			Downscale(*buckets[0])
 		}
 		buckets_Mutex.Unlock()
+		DeleteEmptyDirs("buckets")
 	}
 }
 
