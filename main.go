@@ -24,6 +24,7 @@ var buckets []*Bucket=make([]*Bucket, 0)
 var buckets_Mutex sync.Mutex=sync.Mutex{}
 var last_Bucket int
 var ports_Assigned []int
+var requests       int
 
 type Config struct {
 	Balancers                    []string
@@ -45,6 +46,7 @@ type Bucket struct {
 }
 
 func Proxy(url string, response http.ResponseWriter, request *http.Request) {
+	fmt.Println(url)
 	pulled_Request,err:=http.NewRequest(request.Method, url, request.Body)
 	if err!=nil {
 		http.Error(response, "Internal Error: "+err.Error(), http.StatusInternalServerError)
@@ -90,8 +92,7 @@ func Unzip(source, dest string) error {
 }
 
 func Upscale() (Bucket, error) {
-	buckets_Mutex.Lock()
-	bucket:=Bucket{}
+	bucket:=Bucket{Mutex: &sync.Mutex{}}
 	byted_Id:=[]byte{}
 	digest:=sha256.Sum256([]byte(strconv.FormatInt(time.Now().UnixMilli(), 10)))
 	for _,b:=range digest {
@@ -139,14 +140,14 @@ func Upscale() (Bucket, error) {
 	}
 	shell:=strings.Split(strings.Replace(string(shell_Script), "{PORT}", strconv.FormatInt(int64(bucket.Port), 10), -1), "\n")[0]
 	bucket.Cmd=exec.Command(strings.Split(shell, " ")[0], strings.Split(shell, " ")[1:]...)
+	bucket.Cmd.Dir="buckets/"+bucket.Id
 	bucket.Cmd.Start()
 	ports_Assigned = append(ports_Assigned, bucket.Port)
-	buckets_Mutex.Unlock()
 	return bucket, nil
 }
 
 func Downscale(bucket Bucket) {
-	buckets_Mutex.Lock()
+	bucket.Mutex.Lock()
 	if bucket.Cmd!=nil && bucket.Cmd.Process!=nil {
 		bucket.Cmd.Process.Kill()
 	}
@@ -164,10 +165,26 @@ func Downscale(bucket Bucket) {
 		}
 	}
 	ports_Assigned=new_Ports
-	buckets_Mutex.Unlock()
-	bucket.Mutex.Lock()
 	os.RemoveAll("buckets/"+bucket.Id)
 	bucket.Mutex.Unlock()
+}
+
+func Request_Monitor() {
+	for {
+		time.Sleep(time.Second * time.Duration(config.Scaling_Interval))
+		buckets_Mutex.Lock()
+		rpbs:=requests/(len(buckets)*config.Scaling_Interval)
+		requests=0
+		if rpbs>config.Max_Request_Per_Bucket {
+			if len(buckets)<config.Max_Local_Program_Instances {
+				Upscale()
+			}
+		}
+		if rpbs<config.Min_Request_Per_Bucket && len(buckets)>1 {
+			Downscale(*buckets[0])
+		}
+		buckets_Mutex.Unlock()
+	}
 }
 
 func main() {
@@ -197,11 +214,16 @@ func main() {
 		Upscale()
 		server_Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			buckets_Mutex.Lock()
+			requests+=1
 			last_Bucket=(last_Bucket+1)%len(buckets)
 			bucket:=buckets[last_Bucket]
+			fmt.Println(bucket.Port)
 			buckets_Mutex.Unlock()
+			bucket.Mutex.Lock()
 			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+r.URL.RawPath, w, r)
+			bucket.Mutex.Unlock()
 		})
 	}
+	go Request_Monitor()
 	http.ListenAndServe(":"+strconv.FormatInt(int64(config.Port), 10), server_Mux)
 }
