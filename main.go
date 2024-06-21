@@ -25,6 +25,7 @@ var buckets_Mutex sync.Mutex=sync.Mutex{}
 var last_Bucket int
 var ports_Assigned []int
 var requests       int
+var cache          map[string]string=make(map[string]string)
 
 type Config struct {
 	Balancers                    []string
@@ -211,7 +212,8 @@ func main() {
 			Proxy(balancer+r.URL.RawPath, w, r)
 		})
 	}
-	if !config.Multi_Balancer {
+	if !config.Multi_Balancer && !config.Database {
+		os.Mkdir("buckets", 0644)
 		Upscale()
 		server_Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			buckets_Mutex.Lock()
@@ -224,7 +226,51 @@ func main() {
 			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+r.URL.RawPath, w, r)
 			bucket.Mutex.Unlock()
 		})
+		go Request_Monitor()
 	}
-	go Request_Monitor()
+	if config.Database {
+		db := getConn("main.db")
+		db_Mutex:=sync.Mutex{}
+		defer db.Close()
+		server_Mux.HandleFunc("/set", func(w http.ResponseWriter, r *http.Request) {
+			key:=r.URL.Query().Get("key")
+			if key=="" {
+				return
+			}
+			val:=r.URL.Query().Get("val")
+			if val=="" {
+				return
+			}
+			db_Mutex.Lock()
+			set(db, key, val)
+			cache[key]=val
+			if len(cache)>100 {
+				for key:=range cache {
+					delete(cache, key)
+					break
+				}
+			}
+			db_Mutex.Unlock()
+		})
+		server_Mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+			key:=r.URL.Query().Get("key")
+			if key=="" {
+				return
+			}
+			value,ok:=cache[key]
+			if ok {
+				w.Write([]byte(value))
+			} else {
+				value,ok:=get(db, key)
+				str_Ok:=""
+				if ok {
+					str_Ok="true"
+				} else {
+					str_Ok="false"
+				}
+				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+str_Ok+"}"))
+			}
+		})
+	}
 	http.ListenAndServe(":"+strconv.FormatInt(int64(config.Port), 10), server_Mux)
 }
