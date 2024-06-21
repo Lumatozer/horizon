@@ -259,7 +259,6 @@ func main() {
 			}
 			value,ok:=cache[key]
 			if ok {
-				w.Write([]byte(value))
 				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+"true"+"}"))
 			} else {
 				value,ok:=get(db, key)
