@@ -9,7 +9,7 @@ import (
 )
 
 func getConn(name string) *sql.DB {
-    os.Mkdir("dbs", 0755)
+    os.Mkdir("databases", 0644)
     db, err := sql.Open("sqlite3", "databases/"+name)
     if err != nil {
         fmt.Println(err)
