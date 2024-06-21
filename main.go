@@ -26,6 +26,7 @@ type Config struct {
 	Max_Request_Per_Bucket       int
 	Min_Request_Per_Bucket       int
 	Scaling_Interval             int
+	Database                     int
 }
 
 type Bucket struct {
