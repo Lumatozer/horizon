@@ -6,8 +6,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"sync"
+	"time"
+	"crypto/sha256"
 )
 
 var config Config
@@ -20,14 +23,19 @@ type Config struct {
 	Program_Url                  string
 	Max_Local_Program_Instances  int
 	Port                         int
+	Max_Request_Per_Bucket       int
+	Min_Request_Per_Bucket       int
+	Scaling_Interval             int
 }
 
-func Balance_Server(response http.ResponseWriter, request *http.Request) {
-	balance_Mutex.Lock()
-	last_Balancer=(last_Balancer+1)%len(config.Balancers)
-	balance_Mutex.Unlock()
-	balancer:=config.Balancers[last_Balancer]
-	pulled_Request,err:=http.NewRequest(request.Method, balancer+request.URL.RawPath, request.Body)
+type Bucket struct {
+	Id                           string
+	Port                         int
+	Cmd                          exec.Cmd
+}
+
+func Proxy(url string, response http.ResponseWriter, request *http.Request) {
+	pulled_Request,err:=http.NewRequest(request.Method, url, request.Body)
 	if err!=nil {
 		http.Error(response, "Internal Error: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -53,6 +61,17 @@ func Balance_Server(response http.ResponseWriter, request *http.Request) {
 	response.Write(body)
 }
 
+func Upscale() Bucket {
+	bucket:=Bucket{}
+	byted_Id:=[]byte{}
+	digest:=sha256.Sum256([]byte(strconv.FormatInt(time.Now().Unix(), 10)))
+	for _,b:=range digest {
+		byted_Id = append(byted_Id, b)
+	}
+	bucket.Id=string(byted_Id)
+	return bucket
+}
+
 func main() {
 	data,err:=os.ReadFile("config.json")
 	if err!=nil {
@@ -68,7 +87,16 @@ func main() {
 	fmt.Println(config)
 	server_Mux:=http.NewServeMux()
 	if config.Multi_Balancer  {
-		server_Mux.HandleFunc("/", Balance_Server)
+		server_Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			balance_Mutex.Lock()
+			last_Balancer=(last_Balancer+1)%len(config.Balancers)
+			balance_Mutex.Unlock()
+			balancer:=config.Balancers[last_Balancer]
+			Proxy(balancer+r.URL.RawPath, w, r)
+		})
+	}
+	if !config.Multi_Balancer {
+
 	}
 	http.ListenAndServe(":"+strconv.FormatInt(int64(config.Port), 10), server_Mux)
 }
