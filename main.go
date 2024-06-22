@@ -46,6 +46,11 @@ type Bucket struct {
 	Mutex                        *sync.Mutex
 }
 
+type Response struct {
+	Value                        string
+	Ok                           bool
+}
+
 func Proxy(url string, response http.ResponseWriter, request *http.Request) {
 	fmt.Println(url)
 	pulled_Request,err:=http.NewRequest(request.Method, url, request.Body)
@@ -264,16 +269,12 @@ func main() {
 			defer db_Mutex.Unlock()
 			value,ok:=cache[key]
 			if ok {
-				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+"true"+"}"))
+				out,_:=json.Marshal(Response{Ok: true, Value: value})
+				w.Write(out)
 			} else {
 				value,ok:=get(db, key)
-				str_Ok:=""
-				if ok {
-					str_Ok="true"
-				} else {
-					str_Ok="false"
-				}
-				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+str_Ok+"}"))
+				out,_:=json.Marshal(Response{Ok: ok, Value: value})
+				w.Write(out)
 			}
 		})
 	}
