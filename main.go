@@ -216,17 +216,25 @@ func main() {
 	server_Mux:=http.NewServeMux()
 	if config.Multi_Balancer  {
 		server_Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			url:=r.URL.RawPath
+			if r.URL.RawQuery!="" {
+				url+="?"+r.URL.RawQuery
+			}
 			balance_Mutex.Lock()
 			last_Balancer=(last_Balancer+1)%len(config.Balancers)
 			balance_Mutex.Unlock()
 			balancer:=config.Balancers[last_Balancer]
-			Proxy(balancer+r.URL.Path, w, r)
+			Proxy(balancer+url, w, r)
 		})
 	}
 	if !config.Multi_Balancer && !config.Database {
 		os.Mkdir("buckets", 0644)
 		Upscale()
 		server_Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			url:=r.URL.Path
+			if r.URL.RawQuery!="" {
+				url+="?"+r.URL.RawQuery
+			}
 			buckets_Mutex.Lock()
 			requests+=1
 			last_Bucket=(last_Bucket+1)%len(buckets)
@@ -234,7 +242,7 @@ func main() {
 			fmt.Println(bucket.Port)
 			buckets_Mutex.Unlock()
 			bucket.Mutex.Lock()
-			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+r.URL.Path, w, r)
+			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+url, w, r)
 			bucket.Mutex.Unlock()
 		})
 		go Request_Monitor()
