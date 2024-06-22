@@ -244,6 +244,7 @@ func main() {
 				return
 			}
 			db_Mutex.Lock()
+			defer db_Mutex.Unlock()
 			set(db, key, val)
 			cache[key]=val
 			if len(cache)>100 {
@@ -252,7 +253,6 @@ func main() {
 					break
 				}
 			}
-			db_Mutex.Unlock()
 			w.Write([]byte("true"))
 		})
 		server_Mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
@@ -260,6 +260,8 @@ func main() {
 			if key=="" {
 				return
 			}
+			db_Mutex.Lock()
+			defer db_Mutex.Unlock()
 			value,ok:=cache[key]
 			if ok {
 				w.Write([]byte("{\"value\":\""+value+"\", \"ok\":"+"true"+"}"))
