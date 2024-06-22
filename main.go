@@ -61,6 +61,9 @@ func Proxy(url string, response http.ResponseWriter, request *http.Request) {
 	for header:=range request.Header {
 		pulled_Request.Header.Add(header, request.Header.Get(header))
 	}
+	for _,cookie:=range request.Cookies() {
+		pulled_Request.AddCookie(cookie)
+	}
 	client:=&http.Client{}
 	pulled_Response,err:=client.Do(pulled_Request)
 	if err!=nil {
@@ -75,6 +78,9 @@ func Proxy(url string, response http.ResponseWriter, request *http.Request) {
 	response_Headers:=response.Header()
 	for header:=range pulled_Response.Header {
 		response_Headers.Add(header, pulled_Response.Header.Get(header))
+	}
+	for _,cookie:=range pulled_Response.Cookies() {
+		http.SetCookie(response, cookie)
 	}
 	response.Write(body)
 }
