@@ -214,7 +214,7 @@ func main() {
 			last_Balancer=(last_Balancer+1)%len(config.Balancers)
 			balance_Mutex.Unlock()
 			balancer:=config.Balancers[last_Balancer]
-			Proxy(balancer+r.URL.RawPath, w, r)
+			Proxy(balancer+r.URL.Path, w, r)
 		})
 	}
 	if !config.Multi_Balancer && !config.Database {
@@ -228,7 +228,7 @@ func main() {
 			fmt.Println(bucket.Port)
 			buckets_Mutex.Unlock()
 			bucket.Mutex.Lock()
-			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+r.URL.RawPath, w, r)
+			Proxy("http://127.0.0.1:"+strconv.FormatInt(int64(bucket.Port), 10)+r.URL.Path, w, r)
 			bucket.Mutex.Unlock()
 		})
 		go Request_Monitor()
