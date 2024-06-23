@@ -89,3 +89,18 @@ func Get_All(db *sql.DB, key string) ([]string, bool) {
     }
     return values, true
 }
+
+func Delete(db *sql.DB, key string) bool {
+    query := "DELETE FROM main WHERE x = ?"
+    result, err := db.Exec(query, key)
+    if err != nil {
+        fmt.Println(err)
+        return false
+    }
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        fmt.Println(err)
+        return false
+    }
+    return rowsAffected > 0
+}

@@ -304,13 +304,19 @@ func main() {
 			db_Mutex.Lock()
 			defer db_Mutex.Unlock()
 			value,ok:=Get_All(db, key)
-			if ok {
-				out,_:=json.Marshal(String_Array_Response{Ok: true, Value: value})
-				w.Write(out)
-			} else {
-				out,_:=json.Marshal(String_Array_Response{Ok: ok, Value: value})
-				w.Write(out)
+			out,_:=json.Marshal(String_Array_Response{Ok: ok, Value: value})
+			w.Write(out)
+		})
+		server_Mux.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+			key:=r.URL.Query().Get("key")
+			if key=="" {
+				return
 			}
+			db_Mutex.Lock()
+			defer db_Mutex.Unlock()
+			ok:=Delete(db, key)
+			out,_:=json.Marshal(Response{Ok: ok, Value: ""})
+			w.Write(out)
 		})
 	}
 	http.ListenAndServe(":"+strconv.FormatInt(int64(config.Port), 10), server_Mux)
