@@ -51,6 +51,11 @@ type Response struct {
 	Ok                           bool
 }
 
+type String_Array_Response struct {
+	Value                        []string
+	Ok                           bool
+}
+
 func Proxy(url string, response http.ResponseWriter, request *http.Request) {
 	fmt.Println(url)
 	pulled_Request,err:=http.NewRequest(request.Method, url, request.Body)
@@ -264,7 +269,7 @@ func main() {
 			}
 			db_Mutex.Lock()
 			defer db_Mutex.Unlock()
-			set(db, key, val)
+			Set(db, key, val)
 			cache[key]=val
 			if len(cache)>100 {
 				for key:=range cache {
@@ -286,8 +291,24 @@ func main() {
 				out,_:=json.Marshal(Response{Ok: true, Value: value})
 				w.Write(out)
 			} else {
-				value,ok:=get(db, key)
+				value,ok:=Get(db, key)
 				out,_:=json.Marshal(Response{Ok: ok, Value: value})
+				w.Write(out)
+			}
+		})
+		server_Mux.HandleFunc("/get_all", func(w http.ResponseWriter, r *http.Request) {
+			key:=r.URL.Query().Get("key")
+			if key=="" {
+				return
+			}
+			db_Mutex.Lock()
+			defer db_Mutex.Unlock()
+			value,ok:=Get_All(db, key)
+			if ok {
+				out,_:=json.Marshal(String_Array_Response{Ok: true, Value: value})
+				w.Write(out)
+			} else {
+				out,_:=json.Marshal(String_Array_Response{Ok: ok, Value: value})
 				w.Write(out)
 			}
 		})

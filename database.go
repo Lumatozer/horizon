@@ -25,7 +25,7 @@ func getConn(name string) *sql.DB {
     return db
 }
 
-func set(db *sql.DB, key string, val string) {
+func Set(db *sql.DB, key string, val string) {
     queryCheck := "SELECT x FROM main WHERE x = ?"
     var existingKey string
     err := db.QueryRow(queryCheck, key).Scan(&existingKey)
@@ -50,7 +50,7 @@ func set(db *sql.DB, key string, val string) {
     }
 }
 
-func get(db *sql.DB, key string) (string, bool) {
+func Get(db *sql.DB, key string) (string, bool) {
     query := "SELECT y FROM main WHERE x = ?"
     var value string
     err := db.QueryRow(query, key).Scan(&value)
@@ -61,4 +61,31 @@ func get(db *sql.DB, key string) (string, bool) {
 		return "", false
     }
     return value, true
+}
+
+func Get_All(db *sql.DB, key string) ([]string, bool) {
+    query := "SELECT y FROM main WHERE x LIKE ?"
+    rows, err := db.Query(query, key+"%")
+    if err != nil {
+        fmt.Println(err)
+        return make([]string, 0), false
+    }
+    defer rows.Close()
+    var values []string
+    for rows.Next() {
+        var value string
+        if err := rows.Scan(&value); err != nil {
+            fmt.Println(err)
+            return make([]string, 0), false
+        }
+        values = append(values, value)
+    }
+    if err := rows.Err(); err != nil {
+        fmt.Println(err)
+        return make([]string, 0), false
+    }
+    if len(values) == 0 {
+        return make([]string, 0), false
+    }
+    return values, true
 }
