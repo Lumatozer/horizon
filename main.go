@@ -134,7 +134,6 @@ func Upscale() (Bucket, error) {
 		return bucket, err
 	}
 	os.Remove("buckets/"+bucket.Id+".zip")
-	buckets = append(buckets, &bucket)
 	bucket.Port=100
 	for {
 		to_Use:=true
@@ -160,6 +159,7 @@ func Upscale() (Bucket, error) {
 	bucket.Cmd.Dir="buckets/"+bucket.Id
 	bucket.Cmd.Start()
 	ports_Assigned = append(ports_Assigned, bucket.Port)
+	buckets = append(buckets, &bucket)
 	return bucket, nil
 }
 
