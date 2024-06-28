@@ -292,6 +292,9 @@ func main() {
 				w.Write(out)
 			} else {
 				value,ok:=Get(db, key)
+				if ok {
+					cache[key]=value
+				}
 				out,_:=json.Marshal(Response{Ok: ok, Value: value})
 				w.Write(out)
 			}
