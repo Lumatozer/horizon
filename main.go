@@ -168,11 +168,11 @@ func Upscale() (Bucket, error) {
 }
 
 func Downscale(bucket Bucket) {
+	buckets_Mutex.Lock()
 	bucket.Mutex.Lock()
 	if bucket.Cmd!=nil && bucket.Cmd.Process!=nil {
 		bucket.Cmd.Process.Kill()
 	}
-	buckets_Mutex.Lock()
 	new_Buckets:=make([]*Bucket, 0)
 	for i:=0; i<len(buckets); i++ {
 		if buckets[i].Id!=bucket.Id {
