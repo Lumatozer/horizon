@@ -1,1 +1,1 @@
-{"balancers":["http://127.0.0.1:8080"], "multi_balancer":false, "program_url":"http://127.0.0.1:5000/program.zip", "max_local_program_instances":10, "port":7777, "max_request_per_bucket":5, "min_request_per_bucket":1, "scaling_interval":2, "database":false, "time_to_start_bucket":1}
+{"balancers":["http://127.0.0.1:8080"], "multi_balancer":false, "program_url":"http://127.0.0.1:5000/program.zip", "max_local_program_instances":10, "port":7777, "max_request_per_bucket":5, "min_request_per_bucket":1, "scaling_interval":2, "database":true, "time_to_start_bucket":1}

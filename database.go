@@ -63,29 +63,31 @@ func Get(db *sql.DB, key string) (string, bool) {
     return value, true
 }
 
-func Get_All(db *sql.DB, key string) ([]string, bool) {
-    query := "SELECT y FROM main WHERE x LIKE ?"
+func Get_All(db *sql.DB, key string) (map[string]string, bool) {
+    query := "SELECT x, y FROM main WHERE x LIKE ?"
     rows, err := db.Query(query, key+"%")
     if err != nil {
         fmt.Println(err)
-        return make([]string, 0), false
+        return nil, false
     }
     defer rows.Close()
-    var values []string
+
+    values := make(map[string]string)
     for rows.Next() {
-        var value string
-        if err := rows.Scan(&value); err != nil {
+        var k, v string
+        if err := rows.Scan(&k, &v); err != nil {
             fmt.Println(err)
-            return make([]string, 0), false
+            return nil, false
         }
-        values = append(values, value)
+        values[k] = v
     }
     if err := rows.Err(); err != nil {
         fmt.Println(err)
-        return make([]string, 0), false
+        return nil, false
     }
+
     if len(values) == 0 {
-        return make([]string, 0), false
+        return nil, false
     }
     return values, true
 }

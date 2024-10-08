@@ -317,7 +317,8 @@ func main() {
 			db_Mutex.Lock()
 			defer db_Mutex.Unlock()
 			value,ok:=Get_All(db, key)
-			out,_:=json.Marshal(String_Array_Response{Ok: ok, Value: value})
+			out_string,_:=json.Marshal(value)
+			out,_:=json.Marshal(Response{Ok: ok, Value: string(out_string)})
 			w.Write(out)
 		})
 		server_Mux.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
